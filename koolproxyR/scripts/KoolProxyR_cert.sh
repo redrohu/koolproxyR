@@ -25,7 +25,7 @@ backup() {
 		file_found=0
 	fi
 
-	if [ "$file_found" == "0" ];then
+	if [[ "$file_found" == "0" ]]; then
 		echo_date "退出备份！"
 		echo XU6J03M6
 		exit 1
@@ -38,7 +38,7 @@ backup() {
 }
 
 backup_0() {
-	echo_date "开始备份证书！"
+	echo_date "开始生成  .0 证书！"
 	mkdir -p $KSROOT/webs/files
 
 	if [ ! -f $KSROOT/koolproxyR/data/certs/ca.crt ]; then
@@ -46,8 +46,8 @@ backup_0() {
 		file_found=0
 	fi
 
-	if [ "$file_found" == "0" ];then
-		echo_date "退出备份！"
+	if [[ "$file_found" == "0" ]]; then
+		echo_date "退出生成 .0 根证书！"
 		echo XU6J03M6
 		exit 1
 	fi
@@ -76,7 +76,7 @@ restart_koolproxy(){
 }
 
 restore() {
-	if [ -f /tmp/upload/koolproxyCA.tar.gz ];then
+	if [ -f /tmp/upload/koolproxyCA.tar.gz ]; then
 		echo_date "开始恢复证书！"
 		mkdir -p $CA_DIR
 		cp /tmp/upload/koolproxyCA.tar.gz $CA_DIR
@@ -113,7 +113,7 @@ case $2 in
 2)
 	#恢复证书
 	restore >> $LOG_FILE
-	/etc/rc.d/S93koolproxyR.sh restart
+	$KSROOT/koolproxyR/kpr_config.sh restart
 	http_response "$1"
 	echo XU6J03M6 >> $LOG_FILE
 	;;

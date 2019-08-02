@@ -1,29 +1,39 @@
 #!/bin/sh
 
 MODULE=koolproxyR
-VERSION="900.8.37"
+VERSION="2.2.3"
 TITLE=koolproxyR
 DESCRIPTION="KPR更多规则更舒服！"
 HOME_URL="Module_koolproxyR.asp"
 CHANGELOG="维护阶段的kpr"
-
+# 查看内核日志
+# dmesg | less 或者 dmesg
 # 转化DOS格式到unix 需要 apt-get install dos2unix
 find . -type f -exec dos2unix {} \;
 #get latest rules
-rm -rf ./koolproxyR/koolproxyR/data/rules/*
+rm -rf ./koolproxyR/koolproxyR/data/rules/*.txt
+rm -rf ./koolproxyR/koolproxyR/data/rules/*.md5
+rm -rf ./koolproxyR/koolproxyR/data/rules/*.dat
 rm -rf ./koolproxyR/koolproxyR/data/source.list
-rm -rf ./koolproxyR/koolproxyR/koolproxy
+# rm -rf ./koolproxyR/koolproxyR/koolproxy
 cd koolproxyR/koolproxyR/data/rules
 # mkdir oridata
 # cd oridata
 # 下载三方规则
-
+# 从 https://filterlists.com/ 找规则
+# https://tgc.cloud/downloads/hosts.txt 36万DNS规则，kpr 生产出来是72万
 wget https://easylist-downloads.adblockplus.org/easylistchina.txt
-wget https://raw.githubusercontent.com/cjx82630/cjxlist/master/cjx-annoyance.txt
+# https://dev.tencent.com/u/shaoxia1991/p/cjxlist/git/raw/master/cjx-annoyance.txt
+wget https://dev.tencent.com/u/shaoxia1991/p/cjxlist/git/raw/master/cjx-annoyance.txt
 
 wget https://secure.fanboy.co.nz/fanboy-annoyance.txt
-# 移动广告过滤规则
-wget -O mobile.txt https://filters.adtidy.org/extension/chromium/filters/11.txt
+# ADGUARD-DNS过滤规则
+# wget -O yhosts.txt https://filters.adtidy.org/extension/chromium/filters/15.txt
+# yhosts过滤规则
+# https://dev.tencent.com/u/shaoxia1991/p/yhosts/git/raw/master/data/tvbox.txt
+wget -O yhosts.txt https://dev.tencent.com/u/shaoxia1991/p/yhosts/git/raw/master/hosts
+wget -O tvbox.txt https://dev.tencent.com/u/shaoxia1991/p/yhosts/git/raw/master/data/tvbox.txt
+cat tvbox.txt >> yhosts.txt
 
 # ad.txt：合并EasylistChina、EasylistLite、CJX'sAnnoyance，以及补充的一些规则；
 # ad2.txt：仅合并EasylistChina、EasylistLite、CJX'sAnnoyance；
@@ -33,7 +43,7 @@ wget -O mobile.txt https://filters.adtidy.org/extension/chromium/filters/11.txt
 # 分割三方规则
 
 # # split -l 1 easylistchina.txt ./../easylistchina_
-# split -l 1 mobile.txt ./../chengfeng_
+# split -l 1 yhosts.txt ./../chengfeng_
 # # split -l 999 fanboy-annoyance.txt ./../fanboy_
 # cd ..
 
@@ -44,8 +54,10 @@ wget -O mobile.txt https://filters.adtidy.org/extension/chromium/filters/11.txt
 # 暂时先用临时的替代
 # wget https://kprules.b0.upaiyun.com/kp.dat
 # wget https://kprules.b0.upaiyun.com/user.txt
-wget https://raw.githubusercontent.com/user1121114685/koolproxyR/master/koolproxyR/koolproxyR/data/rules/kp.dat
-wget https://raw.githubusercontent.com/user1121114685/koolproxyR/master/koolproxyR/koolproxyR/data/rules/user.txt
+# 同步Kpr视频规则及md5
+wget https://dev.tencent.com/u/shaoxia1991/p/koolproxyR_rule_list/git/raw/master/kp.dat
+wget https://dev.tencent.com/u/shaoxia1991/p/koolproxyR_rule_list/git/raw/master/kp.dat.md5
+wget https://dev.tencent.com/u/shaoxia1991/p/koolproxyr/git/raw/master/koolproxyR/koolproxyR/data/rules/user.txt
 
 ## ---------------------------------------------------fanboy处理开始------------------------------------------------------
 ## 删除导致KP崩溃的规则
@@ -63,23 +75,28 @@ sed -i '/gtimg.cn/d' fanboy-annoyance.txt
 sed -i '/zhihu.com/d' fanboy-annoyance.txt
 
 
-# # 将白名单转化成https https放行用三个@ http 用2个@
-# cat fanboy-annoyance.txt | grep "^@@||" | sed 's#^@@||#@@@@||https://#g' >> fanboy-annoyance_https.txt
-# cat fanboy-annoyance.txt | grep "^@@||" | sed 's#^@@||#@@||http://#g' >> fanboy-annoyance_https.txt
 # 将规则转化成kp能识别的https
 cat fanboy-annoyance.txt | grep "^||" | sed 's#^||#||https://#g' >> fanboy-annoyance_https.txt
+# 移出https不支持规则domain=
+sed -i 's/\(,domain=\).*//g' fanboy-annoyance_https.txt
+sed -i 's/\(\$domain=\).*//g' fanboy-annoyance_https.txt
+sed -i 's/\(domain=\).*//g' fanboy-annoyance_https.txt
+sed -i '/\^$/d' fanboy-annoyance_https.txt
+sed -i '/\^\*\.gif/d' fanboy-annoyance_https.txt
+sed -i '/\^\*\.jpg/d' fanboy-annoyance_https.txt
+
+
 cat fanboy-annoyance.txt | grep "^||" | sed 's#^||#||http://#g' >> fanboy-annoyance_https.txt
 cat fanboy-annoyance.txt | grep -i '^[0-9a-z]'| grep -v '^http'| sed 's#^#https://#g' >> fanboy-annoyance_https.txt
 cat fanboy-annoyance.txt | grep -i '^[0-9a-z]'| grep -v '^http'| sed 's#^#http://#g' >> fanboy-annoyance_https.txt
 cat fanboy-annoyance.txt | grep -i '^[0-9a-z]'| grep -i '^http' >> fanboy-annoyance_https.txt
-# cat fanboy-annoyance.txt | grep -i '^@@'| grep -v '^@@|'| sed 's#^@@#@@@@https://\*#g' >> fanboy-annoyance_https.txt
-# cat fanboy-annoyance.txt | grep -i '^@@'| grep -v '^@@|'| sed 's#^@@#@@http://\*#g' >> fanboy-annoyance_https.txt
 
 
 # 给github的https放行
 sed -i '/github/d' fanboy-annoyance_https.txt
 # 给apple的https放行
 sed -i '/apple.com/d' fanboy-annoyance_https.txt
+sed -i '/mzstatic.com/d' fanboy-annoyance_https.txt
 # 给api.twitter.com的https放行
 sed -i '/twitter.com/d' fanboy-annoyance_https.txt
 # 给facebook.com的https放行
@@ -91,9 +108,9 @@ sed -i '/instagram.com/d' fanboy-annoyance_https.txt
 sed -i '/\.\*\//d' fanboy-annoyance_https.txt
 
 # 给国内三大电商平台放行
-sed -i '/https:\/\/jd.com/d' fanboy-annoyance_https.txt
-sed -i '/https:\/\/taobao.com/d' fanboy-annoyance_https.txt
-sed -i '/https:\/\/tmall.com/d' fanboy-annoyance_https.txt
+sed -i '/jd.com/d' fanboy-annoyance_https.txt
+sed -i '/taobao.com/d' fanboy-annoyance_https.txt
+sed -i '/tmall.com/d' fanboy-annoyance_https.txt
 
 # 删除不必要信息重新打包 15 表示从第15行开始 $表示结束
 sed -i '15,$d' fanboy-annoyance.txt
@@ -105,8 +122,22 @@ sed -i '/https:\/\/\*/d' fanboy-annoyance.txt
 sed -i '/netflix.com/d' fanboy-annoyance.txt
 # 给 tvbs.com 放行
 sed -i '/tvbs.com/d' fanboy-annoyance.txt
+sed -i '/googletagmanager.com/d' fanboy-annoyance.txt
 # 给 microsoft.com 放行
 sed -i '/microsoft.com/d' fanboy-annoyance.txt
+
+# 终极 https 卡顿优化 grep -n 显示行号  awk -F 分割数据  sed -i "${del_rule}d" 需要""" 和{}引用变量
+# 当 koolproxyR_del_rule 是1的时候就一直循环，除非 del_rule 变量为空了。
+koolproxyR_del_rule=1
+while [ $koolproxyR_del_rule = 1 ];do
+    del_rule=`cat fanboy-annoyance.txt | grep -n 'https://' | grep '\*' | grep -v '/\*'| grep -v '\^\*' | grep -v '\*\=' | grep -v '\$s\@' | grep -v '\$r\@'| awk -F":" '{print $1}' | sed -n '1p'`
+    if [[ "$del_rule" != "" ]]; then
+        sed -i "${del_rule}d" fanboy-annoyance.txt
+    else
+        koolproxyR_del_rule=0
+    fi
+done	
+
 
 ## -------------------------------------------------------fanboy处理结束------------------------------------------------------
 
@@ -126,11 +157,16 @@ sed -i '/zhihu.com/d' easylistchina.txt
 
 
 
-# # 将白名单转化成https
-# cat easylistchina.txt | grep "^@@||" | sed 's#^@@||#@@@@||https://#g' >> easylistchina_https.txt
-# cat easylistchina.txt | grep "^@@||" | sed 's#^@@||#@@||http://#g' >> easylistchina_https.txt
 # 将规则转化成kp能识别的https
 cat easylistchina.txt | grep "^||" | sed 's#^||#||https://#g' >> easylistchina_https.txt
+# 移出https不支持规则domain=
+sed -i 's/\(,domain=\).*//g' easylistchina_https.txt
+sed -i 's/\(\$domain=\).*//g' easylistchina_https.txt
+sed -i 's/\(domain=\).*//g' easylistchina_https.txt
+sed -i '/\^$/d' easylistchina_https.txt
+sed -i '/\^\*\.gif/d' easylistchina_https.txt
+sed -i '/\^\*\.jpg/d' easylistchina_https.txt
+
 cat easylistchina.txt | grep "^||" | sed 's#^||#||http://#g' >> easylistchina_https.txt
 cat easylistchina.txt | grep -i '^[0-9a-z]'| grep -v '^http'| sed 's#^#https://#g' >> easylistchina_https.txt
 # 源文件替换成http
@@ -138,8 +174,6 @@ cat easylistchina.txt | grep -i '^[0-9a-z]'| grep -v '^http'| sed 's#^#http://#g
 cat easylistchina.txt | grep -i '^[0-9a-z]'| grep -i '^http' >> easylistchina_https.txt
 cat easylistchina.txt | grep -i '^[0-9a-z]'| grep -i '^|http' >> easylistchina_https.txt
 
-# cat easylistchina.txt | grep -i '^@@'| grep -v '^@@|'| sed 's#^@@#@@@@https://\*#g' >> easylistchina_https.txt
-# cat easylistchina.txt | grep -i '^@@'| grep -v '^@@|'| sed 's#^@@#@@http://\*#g' >> easylistchina_https.txt
 # 给facebook.com的https放行
 sed -i '/facebook.com/d' easylistchina_https.txt
 sed -i '/fbcdn.net/d' easylistchina_https.txt
@@ -152,18 +186,10 @@ sed -i '/\.\*\//d' easylistchina_https.txt
 # 删除不必要信息重新打包 15 表示从第15行开始 $表示结束
 sed -i '6,$d' easylistchina.txt
 # 合二归一
-wget https://raw.githubusercontent.com/user1121114685/koolproxyR_rule_list/master/kpr_our_rule.txt
-cat kpr_our_rule.txt >> easylistchina.txt
+# https://dev.tencent.com/u/shaoxia1991/p/koolproxyR_rule_list/git/raw/master/kpr_our_rule.txt
+wget https://dev.tencent.com/u/shaoxia1991/p/koolproxyR_rule_list/git/raw/master/kpr_our_rule.txt
 cat easylistchina_https.txt >> easylistchina.txt
 
-# 把三大视频网站给剔除来，作为单独文件。
-cat easylistchina.txt | grep -i 'youku.com' > kpr_video_list.txt
-cat easylistchina.txt | grep -i 'iqiyi.com' >> kpr_video_list.txt
-cat easylistchina.txt | grep -i 'v.qq.com' >> kpr_video_list.txt
-cat easylistchina.txt | grep -i 'g.alicdn.com' >> kpr_video_list.txt
-cat easylistchina.txt | grep -i 'tudou.com' >> kpr_video_list.txt
-cat easylistchina.txt | grep -i 'gtimg.cn' >> kpr_video_list.txt
-cat easylistchina.txt | grep -i 'l.qq.com' >> kpr_video_list.txt
 # 给三大视频网站放行 由kp.dat负责
 sed -i '/youku.com/d' easylistchina.txt
 sed -i '/iqiyi.com/d' easylistchina.txt
@@ -175,15 +201,32 @@ sed -i '/qq.com/d' easylistchina.txt
 # 删除可能导致kpr卡死的神奇规则
 sed -i '/https:\/\/\*/d' easylistchina.txt
 # 给国内三大电商平台放行
-sed -i '/https:\/\/jd.com/d' easylistchina.txt
-sed -i '/https:\/\/taobao.com/d' easylistchina.txt
-sed -i '/https:\/\/tmall.com/d' easylistchina.txt
+sed -i '/jd.com/d' easylistchina.txt
+sed -i '/taobao.com/d' easylistchina.txt
+sed -i '/tmall.com/d' easylistchina.txt
 # 给 tvbs.com 放行
 sed -i '/tvbs.com/d' easylistchina.txt
+sed -i '/googletagmanager.com/d' easylistchina.txt
 # 给 netflix.com 放行
 sed -i '/netflix.com/d' easylistchina.txt
 # 给 microsoft.com 放行
 sed -i '/microsoft.com/d' easylistchina.txt
+# 给apple的https放行
+sed -i '/apple.com/d' easylistchina.txt
+sed -i '/mzstatic.com/d' easylistchina.txt
+
+# 终极 https 卡顿优化 grep -n 显示行号  awk -F 分割数据  sed -i "${del_rule}d" 需要""" 和{}引用变量
+# 当 koolproxyR_del_rule 是1的时候就一直循环，除非 del_rule 变量为空了。
+koolproxyR_del_rule=1
+while [ $koolproxyR_del_rule = 1 ];do
+    del_rule=`cat easylistchina.txt | grep -n 'https://' | grep '\*' | grep -v '/\*'| grep -v '\^\*' | grep -v '\*\=' | grep -v '\$s\@' | grep -v '\$r\@'| awk -F":" '{print $1}' | sed -n '1p'`
+    if [[ "$del_rule" != "" ]]; then
+        sed -i "${del_rule}d" easylistchina.txt
+    else
+        koolproxyR_del_rule=0
+    fi
+done	
+cat kpr_our_rule.txt >> easylistchina.txt
 
 
 
@@ -192,91 +235,88 @@ sed -i '/microsoft.com/d' easylistchina.txt
 # -----------------------------------------KPR 中国简易规则处理结束------------------------------------------------
 
 
-# -------------------------------------- 移动设备规则处理开始----------------------------------------------------------
-
-sed -i '/^\$/d' mobile.txt
-sed -i '/\*\$/d' mobile.txt
-
-
-# # 将白名单转化成https
-# cat mobile.txt | grep "^@@||" | sed 's#^@@||#@@@@||https://#g' >> mobile_https.txt
-# cat mobile.txt | grep "^@@||" | sed 's#^@@||#@@||http://#g' >> mobile_https.txt
-# 将规则转化成kp能识别的https
-cat mobile.txt | grep "^||" | sed 's#^||#||https://#g' >> mobile_https.txt
-cat mobile.txt | grep "^||" | sed 's#^||#||http://#g' >> mobile_https.txt
-cat mobile.txt | grep -i '^[0-9a-z]'| grep -v '^http'| sed 's#^#https://#g' >> mobile_https.txt
-cat mobile.txt | grep -i '^[0-9a-z]'| grep -v '^http'| sed 's#^#http://#g' >> mobile_https.txt
-cat mobile.txt | grep -i '^[0-9a-z]'| grep -i '^http' >> mobile_https.txt
-# cat mobile.txt | grep -i '^@@'| grep -v '^@@|'| sed 's#^@@#@@@@https://\*#g' >> mobile_https.txt
-# cat mobile.txt | grep -i '^@@'| grep -v '^@@|'| sed 's#^@@#@@http://\*#g' >> mobile_https.txt
-
-
-# 删除可能导致Kpr变慢的Https规则
-sed -i '/\.\*\//d' mobile_https.txt
-
+# -------------------------------------- 补充规则处理开始----------------------------------------------------------
+# 删除不必要信息重新打包 0-11行 表示从第15行开始 $表示结束
+# sed -i '1,11d' yhosts.txt
+# 开始Kpr规则化处理
+cat yhosts.txt > yhosts_https.txt 
+sed -i 's/^127.0.0.1\ /||https:\/\//g' yhosts_https.txt
+cat yhosts.txt >> yhosts_https.txt 
+sed -i 's/^127.0.0.1\ /||http:\/\//g' yhosts_https.txt
+# 处理tvbox.txt本身规则。
+sed -i 's/^127.0.0.1\ /||/g' tvbox.txt
 # 给国内三大电商平台放行
-sed -i '/https:\/\/jd.com/d' mobile_https.txt
-sed -i '/https:\/\/taobao.com/d' mobile_https.txt
-sed -i '/https:\/\/tmall.com/d' mobile_https.txt
+sed -i '/jd.com/d' yhosts_https.txt
+sed -i '/taobao.com/d' yhosts_https.txt
+sed -i '/tmall.com/d' yhosts_https.txt
 
-
-# 删除不必要信息重新打包 15 表示从第15行开始 $表示结束
-sed -i '8,$d' mobile.txt
 # 合二归一
-cat mobile_https.txt >> mobile.txt
+cat yhosts_https.txt > yhosts.txt
+cat tvbox.txt >> yhosts.txt
+# 此处对yhosts进行单独处理
+sed -i 's/^@/!/g' yhosts.txt
+sed -i 's/^#/!/g' yhosts.txt
 
-# 把三大视频网站给剔除来，作为单独文件。
-cat mobile.txt | grep -i 'youku.com' > kpr_video_list_1.txt
-cat mobile.txt | grep -i 'iqiyi.com' >> kpr_video_list_1.txt
-cat mobile.txt | grep -i 'v.qq.com' >> kpr_video_list_1.txt
-cat mobile.txt | grep -i 'g.alicdn.com' >> kpr_video_list_1.txt
-cat mobile.txt | grep -i 'tudou.com' >> kpr_video_list_1.txt
-cat mobile.txt | grep -i 'gtimg.cn' >> kpr_video_list_1.txt
-cat mobile.txt | grep -i 'l.qq.com' >> kpr_video_list_1.txt
 # 给三大视频网站放行 由kp.dat负责
-sed -i '/youku.com/d' mobile.txt
-sed -i '/iqiyi.com/d' mobile.txt
-sed -i '/g.alicdn.com/d' mobile.txt
-sed -i '/tudou.com/d' mobile.txt
-sed -i '/gtimg.cn/d' mobile.txt
-# 给知乎放行
-sed -i '/zhihu.com/d' mobile.txt
+sed -i '/youku.com/d' yhosts.txt
+sed -i '/iqiyi.com/d' yhosts.txt
+sed -i '/g.alicdn.com/d' yhosts.txt
+sed -i '/tudou.com/d' yhosts.txt
+sed -i '/gtimg.cn/d' yhosts.txt
 
-# 给https://qq.com的html规则放行
-sed -i '/qq.com/d' mobile.txt
+
+# 给知乎放行
+sed -i '/zhihu.com/d' yhosts.txt
+
+# 给qq.com放行
+sed -i '/qq.com/d' yhosts.txt
 
 # 给github的https放行
-sed -i '/github/d' mobile.txt
+sed -i '/github/d' yhosts.txt
 # 给apple的https放行
-sed -i '/apple.com/d' mobile.txt
+sed -i '/apple.com/d' yhosts.txt
+sed -i '/mzstatic.com/d' yhosts.txt
 # 给api.twitter.com的https放行
-sed -i '/twitter.com/d' mobile.txt
+sed -i '/twitter.com/d' yhosts.txt
 # 给facebook.com的https放行
-sed -i '/facebook.com/d' mobile.txt
-sed -i '/fbcdn.net/d' mobile.txt
+sed -i '/facebook.com/d' yhosts.txt
+sed -i '/fbcdn.net/d' yhosts.txt
 # 给 instagram.com 放行
-sed -i '/instagram.com/d' mobile.txt
+sed -i '/instagram.com/d' yhosts.txt
 # 删除可能导致kpr卡死的神奇规则
-sed -i '/https:\/\/\*/d' mobile.txt
+sed -i '/https:\/\/\*/d' yhosts.txt
 # 给 tvbs.com 放行
-sed -i '/tvbs.com/d' mobile.txt
+sed -i '/tvbs.com/d' yhosts.txt
+sed -i '/googletagmanager.com/d' yhosts.txt
 # 给 netflix.com 放行
-sed -i '/netflix.com/d' mobile.txt
+sed -i '/netflix.com/d' yhosts.txt
 # 给 microsoft.com 放行
-sed -i '/microsoft.com/d' mobile.txt
+sed -i '/microsoft.com/d' yhosts.txt
+
+# 终极 https 卡顿优化 grep -n 显示行号  awk -F 分割数据  sed -i "${del_rule}d" 需要""" 和{}引用变量
+# 当 koolproxyR_del_rule 是1的时候就一直循环，除非 del_rule 变量为空了。
+koolproxyR_del_rule=1
+while [ $koolproxyR_del_rule = 1 ];do
+    del_rule=`cat yhosts.txt | grep -n 'https://' | grep '\*' | grep -v '/\*'| grep -v '\^\*' | grep -v '\*\=' | grep -v '\$s\@' | grep -v '\$r\@'| awk -F":" '{print $1}' | sed -n '1p'`
+    if [[ "$del_rule" != "" ]]; then
+        sed -i "${del_rule}d" yhosts.txt
+    else
+        koolproxyR_del_rule=0
+    fi
+done	
 
 
 
-
-# ---------------------------------------------移动设备规则处理结束----------------------------------------------
+# ---------------------------------------------补充规则处理结束----------------------------------------------
 
 ## 删除临时文件
-rm *https.txt
+rm *_https.txt
 rm kpr_our_rule.txt
 rm cjx-annoyance.txt
+rm tvbox.txt
 
 # 测试专用
-# split -l 1 mobile.txt chengfeng_
+# split -l 1 yhosts.txt chengfeng_
 # ls|grep chengfeng_|xargs -n1 -i{} mv {} {}.txt
 
 cd ..
@@ -289,7 +329,9 @@ sed -i 's/$/|0|0/' source.list
 sed -i '/user.txt/d' source.list
 echo "1|user.txt|0|0" >> source.list
 echo "0|kp.dat|0|0" >> source.list
-
+# source.list的格式命名
+# 开关 0表示关闭 1表示开启
+# 开关|规则名字|规则网址|规则备注名字
 # 不支持规则
 
 # 1 小于2个字符的 例如 ab
@@ -298,19 +340,40 @@ echo "0|kp.dat|0|0" >> source.list
 # @@*$stylesheet
 
 cd ..
-wget https://raw.githubusercontent.com/koolshare/ledesoft/master/koolproxy/koolproxy/koolproxy/koolproxy
+# 现在在\koolproxyR\koolproxyR\koolproxyR
+# wget https://raw.githubusercontent.com/koolshare/ledesoft/master/koolproxy/koolproxy/koolproxy/koolproxy
 cd ../..
-# Check and include base
-DIR="$( cd "$( dirname "$BASH_SOURCE[0]" )" && pwd )"
+# 现在在 Y:\koolproxyR 也就是主目录
+# # Check and include base
+# DIR="$( cd "$( dirname "$BASH_SOURCE[0]" )" && pwd )"
 
-# now include build_base.sh
-. $DIR/../softcenter/build_base.sh
+# # now include build_base.sh
+# . $DIR/../softcenter/build_base.sh
 
-# change to module directory
-cd $DIR
+# # change to module directory
+# cd $DIR
 
-# do something here
+# # do something here
 
+# 
+
+
+do_build_result() {
+    rm -f koolproxyR.tar.gz
+    tar -zcvf koolproxyR.tar.gz koolproxyR
+    md5value=`md5sum koolproxyR.tar.gz | cut -d \  -f1`
+    echo "$VERSION" > version
+    echo "$md5value" >> version
+}
 do_build_result
 
-sh backup.sh $MODULE
+
+sh backup.sh koolproxyR
+cd koolproxyR/koolproxyR/data/rules
+# ls | grep .txt | sed 's/^/md5sum /g' | >> rules_md5.sh
+md5sum easylistchina.txt|awk '{print $1}' > easylistchina.txt.md5
+md5sum kp.dat|awk '{print $1}' > kp.dat.md5
+md5sum user.txt|awk '{print $1}' > user.txt.md5
+md5sum fanboy-annoyance.txt|awk '{print $1}' > fanboy-annoyance.txt.md5
+md5sum yhosts.txt|awk '{print $1}' > yhosts.txt.md5
+
